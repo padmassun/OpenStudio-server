@@ -129,21 +129,7 @@ class RunSimulateDataPoint
       @data_point.sdp_log_file = File.read(run_log_file).lines
     end
 
-    # Save the results to the database - i was PUTing these to the server,
-    # but the values were not be typed correctly within RestClient. Since
-    # this is running as a delayed job, then access to mongoid methods is okay.
-    results_file = "#{run_dir}/measure_attributes.json"
-    if File.exist? results_file
-      results = JSON.parse(File.read(results_file), symbolize_names: true)
 
-      # push the results to the server
-      # DLM: TODO make this a RESTful call instead of Mongoid
-      @data_point.update(results: results)
-
-      # TODO: Need to create a chord to run at the end of all the datapoints to finalize the analysis
-    else
-      raise "Could not find results #{results_file}"
-    end
 
     sim_logger.info 'Saving files/reports back to the server'
 
@@ -188,6 +174,22 @@ class RunSimulateDataPoint
       RestClient.post(url, file: { display_name: 'Zip File',
                                    type: 'Data Point',
                                    attachment: File.new(results_zip, 'rb') })
+    end
+
+    # Save the results to the database - i was PUTing these to the server,
+    # but the values were not be typed correctly within RestClient. Since
+    # this is running as a delayed job, then access to mongoid methods is okay.
+    results_file = "#{run_dir}/measure_attributes.json"
+    if File.exist? results_file
+      results = JSON.parse(File.read(results_file), symbolize_names: true)
+
+      # push the results to the server
+      # DLM: TODO make this a RESTful call instead of Mongoid
+      @data_point.update(results: results)
+
+      # TODO: Need to create a chord to run at the end of all the datapoints to finalize the analysis
+    else
+      raise "Could not find results #{results_file}"
     end
 
     @data_point.update(status_message: 'completed normal')
